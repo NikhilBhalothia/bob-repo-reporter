@@ -1,171 +1,90 @@
-# 🗂 repo-reporter
+# repo-reporter 📋
 
-**Instant onboarding reports for any code repository.**
+**Instant onboarding reports for any codebase — built with IBM Bob 2.0**
 
-Drop `repo-reporter` on a repo and get a structured Markdown (+ HTML) report telling a new developer exactly where to start, what's risky, and where the gaps are — in under a minute.
+`repo-reporter` scans a code repository and generates a plain-English report that answers the question every new developer asks on day one: *"Where do I even start?"*
 
----
-
-## What it produces
-
-```
-# Repo Health & Onboarding Report — my-project
-
-## 📊 Repository Overview
-Total files · Languages · Lines of code
-
-## 🚀 Start Here
-Top 3-5 files a new dev should read first
-
-## ⚠️ Risk Flags
-Files with no docs · no tests · high TODOs · oversized functions
-
-## 📁 Module Summaries
-2-3 sentence plain-English description of every significant file
-```
+Built for the **IBM Bob 2.0 Hackathon** (lablab.ai).
 
 ---
 
-## Install
+## The problem
 
-**Requirements:** Python 3.8+
+Joining an unfamiliar codebase is slow. There's no map — you don't know which files matter, which ones are undocumented landmines, or where the tests (if any) live. Senior developers spend hours walking new hires through a repo that a tool could summarize in seconds.
+
+## What it does
+
+Point `repo-reporter` at any folder and it generates a report covering:
+
+- **Repo overview** — file count, languages used, total lines of code
+- **"Start here"** — the handful of files most important to read first
+- **Risk flags** — files with no docs, no tests, high TODO/FIXME density, or oversized functions
+- **Per-module summaries** — a 2–3 sentence, plain-English explanation of what each major file/module actually does
+
+Output is generated as both **Markdown** (`report.md`) and **HTML** (`report.html`).
+
+## Installation
 
 ```bash
-# Clone and install in one step
-git clone https://github.com/you/repo-reporter
-cd repo-reporter
+git clone https://github.com/NikhilBhalothia/bob-repo-reporter.git
+cd bob-repo-reporter
 pip install -e .
 ```
-
-Or install just the dependencies without the package entry point:
-
-```bash
-pip install -r requirements.txt
-python -m repo_reporter.cli scan <path-to-repo>
-```
-
----
 
 ## Usage
 
 ```bash
-# Print Markdown report to stdout
-repo-reporter scan /path/to/your/repo
-
-# Save Markdown report to a file
-repo-reporter scan /path/to/your/repo --output report.md
-
-# Save both Markdown + HTML into the repo root
-repo-reporter scan /path/to/your/repo --format both
-
-# Save both into a specific directory
-repo-reporter scan /path/to/your/repo --format both --output ./reports
-
-# HTML only (great for sharing with non-technical stakeholders)
-repo-reporter scan /path/to/your/repo --format html --output report.html
+repo-reporter scan <path-to-repo> --format both
 ```
 
-### All options
-
-```
-Usage: repo-reporter scan [OPTIONS] <path-to-repo>
-
-Options:
-  -f, --format [markdown|html|both]  Output format.  [default: markdown]
-  -o, --output PATH                  Where to save the report.
-                                     markdown/html → file path (default: stdout)
-                                     both          → directory  (default: repo root)
-  --help                             Show this message and exit.
-```
-
----
-
-## Example run
+Example — scanning the tool's own repo:
 
 ```bash
-$ repo-reporter scan ~/projects/django --format both --output ./reports
-Scanning…
-Analysing 312 files…
-  Written: reports/report.md
-  Written: reports/report.html
+repo-reporter scan . --format both
 ```
 
-Open `reports/report.html` in a browser — it's self-contained, no server needed.
+This produces `report.md` and `report.html` in the current directory. Open either in your editor or browser to see the full onboarding report.
 
----
+### Flags
+
+| Flag | Description |
+|---|---|
+| `--format` | `md`, `html`, or `both` (default: `md`) |
+| `--output` | Custom output path/directory for the generated report(s) |
+
+## How it works
+
+1. **Scan** — walks the repo, collecting per-file stats (language, line count, docstring presence, TODO/FIXME count, test-file heuristics). Skips `.git`, `node_modules`, `venv`, `__pycache__`, and similar noise.
+2. **Analyze** — for each significant module, generates a plain-English summary of its purpose and flags anything risky (missing docs/tests, high TODO density).
+3. **Report** — compiles everything into a single readable Markdown/HTML report, structured so a new developer can get oriented in under 5 minutes.
 
 ## Project structure
 
 ```
 repo_reporter/
-├── cli.py          Entry point — Click commands, error handling
-├── scanner.py      Walks the repo, collects per-file signals
-├── analyser.py     Builds plain-English summaries and risk flags
-└── reporter.py     Renders Markdown and HTML output
+├── __init__.py          # package + __version__
+├── __main__.py          # python -m repo_reporter support
+├── cli.py               # CLI entrypoint (scan subcommand)
+├── scanner/
+│   └── scanner.py       # scan_repo() → findings dict
+└── reporter/
+    └── reporter.py       # build_report(findings) → str
+pyproject.toml            # package metadata + console_script entry point
+bob_sessions/              # Screenshots of the Bob build sessions (see below)
 ```
 
-**Data flow:**
+## Built with IBM Bob 2.0
 
-```
-Path on disk
-  └─▶ RepoScanner.scan()        →  ScanResult (list of FileInfo)
-        └─▶ RepoAnalyser.analyse()  →  list of ModuleFinding
-              └─▶ ReportGenerator.write()  →  report.md + report.html
-```
+This project was built end-to-end in collaborative sessions with Bob 2.0, IBM's AI development partner — scaffolding, scanner logic, the AI-powered summarization layer, report generation, and final polish. Session summaries and screenshots documenting each build stage are in [`bob_sessions/`](./bob_sessions).
 
----
+## Team
 
-## What gets flagged
+Built by a team of 4 for the IBM Bob 2.0 Hackathon.
 
-| Flag | Meaning |
-|------|---------|
-| 📄 `NO_DOCS` | No comments or docstrings found |
-| 🧪 `NO_TESTS` | No corresponding test file detected |
-| 📝 `HIGH_TODO` | 5 or more TODO/FIXME/HACK markers |
-| 📏 `LONG_FILE` | File exceeds 300 lines |
-| 🔬 `LONG_FUNCTIONS` | A function or class body exceeds 50 lines |
+## Demo
 
-Directories skipped automatically: `.git`, `node_modules`, `venv`, `__pycache__`, `dist`, `build`, and more.
+📹 [Demo video link here]
 
----
+## License
 
-## Extending repo-reporter
-
-The pipeline is intentionally simple — three stages, each a plain Python class.
-Common extension points:
-
-| What you want | Where to change |
-|---------------|-----------------|
-| Support a new language | `EXT_TO_LANG` + `LANG_COMMENT_PATTERNS` in `scanner.py` |
-| Add a new risk flag | `_build_risks()` in `analyser.py` |
-| Add a report section | `MarkdownReporter` in `reporter.py` |
-| Change "Start Here" ranking | `_start_here_score()` in `reporter.py` |
-
----
-
-## Possible quick enhancement — CI / pre-commit integration
-
-Add a `--fail-on-risks` flag that exits with code 1 when any file has risk flags.
-Drop it in a GitHub Actions step or pre-commit hook:
-
-```yaml
-# .github/workflows/onboarding-report.yml
-- name: Check repo health
-  run: repo-reporter scan . --fail-on-risks
-```
-
-Implementation is ~10 lines in `cli.py`:
-
-```python
-@click.option("--fail-on-risks", is_flag=True,
-              help="Exit with code 1 if any risk flags are found.")
-def scan(..., fail_on_risks):
-    ...
-    if fail_on_risks and any(f.risks for f in findings):
-        risky = sum(1 for f in findings if f.risks)
-        _die(f"{risky} file(s) have risk flags. Fix them or update thresholds.")
-```
-
----
-
-*Summaries are derived from static analysis — no LLM, no network calls, no API keys.*
+MIT
