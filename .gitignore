@@ -1,0 +1,30 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Generated reports (produced at runtime, not source)
+report.md
+report.html
+
+# Tools
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
