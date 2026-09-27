@@ -79,11 +79,8 @@ This project was built end-to-end in collaborative sessions with Bob 2.0, IBM's 
 
 ## Team
 
-Built by a team of 4 for the IBM Bob 2.0 Hackathon.
+Built by SpongeBob SquareDivs for the IBM Bob 2.0 Hackathon.
 
-## Demo
-
-📹 [Demo video link here]
 
 ## License
 
