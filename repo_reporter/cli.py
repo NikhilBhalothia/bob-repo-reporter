@@ -104,7 +104,7 @@ def scan(repo_path: str, output: Optional[str], fmt: str):
                 type=click.Path(file_okay=False, resolve_path=True))
 @click.option("--output", "-o", default=None, metavar="FILE",
               help="Write the diagram to a file (default: stdout).")
-def arch(repo_path: str, output: str | None):
+def arch(repo_path: str, output: Optional[str]):
     """Generate a Mermaid.js architecture diagram for the repository.
 
     \b
@@ -135,7 +135,7 @@ def arch(repo_path: str, output: str | None):
                 type=click.Path(file_okay=False, resolve_path=True))
 @click.option("--output", "-o", default=None, metavar="FILE",
               help="Write the report to a file (default: stdout).")
-def debt(repo_path: str, output: str | None):
+def debt(repo_path: str, output: Optional[str]):
     """Run a code quality audit and produce a Code Health Report.
 
     \b
@@ -173,7 +173,7 @@ def debt(repo_path: str, output: str | None):
 @click.option("--output", "-o", default=None, metavar="FILE",
               help="Write notes to a file (default: stdout).")
 def release_notes(repo_path: str, tag: str, limit: int,
-                  from_ref: str | None, output: str | None):
+                  from_ref: Optional[str], output: Optional[str]):
     """Generate categorised release notes from git commit history.
 
     \b
@@ -250,7 +250,7 @@ def _die(message: str) -> None:
     sys.exit(1)
 
 
-def _write_or_print(content: str, output: str | None) -> None:
+def _write_or_print(content: str, output: Optional[str]) -> None:
     """Write content to a file or print to stdout."""
     if output:
         out_path = Path(output)
