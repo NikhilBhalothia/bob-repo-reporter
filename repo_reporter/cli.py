@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -30,11 +31,11 @@ def cli():
                   "For --format both: a directory (default: repo root)."
               ))
 @click.option("--format", "-f", "fmt",
-              type=click.Choice(["markdown", "html", "both"], case_sensitive=False),
+              type=click.Choice(["markdown", "md", "html", "both"], case_sensitive=False),
               default="markdown",
               show_default=True,
-              help="Output format.")
-def scan(repo_path: str, output: str | None, fmt: str):
+              help="Output format.  'md' is an alias for 'markdown'.")
+def scan(repo_path: str, output: Optional[str], fmt: str):
     """Scan a repository and produce an onboarding report.
 
     \b
@@ -44,7 +45,12 @@ def scan(repo_path: str, output: str | None, fmt: str):
       repo-reporter scan /path/to/repo --format both --output ./reports
       repo-reporter scan /path/to/repo --output report.md
       repo-reporter scan /path/to/repo --format html --output report.html
+      repo-reporter scan /path/to/repo --format md
     """
+    # Normalise the 'md' alias so all downstream logic can use 'markdown'
+    if fmt.lower() == "md":
+        fmt = "markdown"
+
     repo = _validate_repo(repo_path)
 
     # --- scan ---

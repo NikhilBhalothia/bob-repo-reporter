@@ -284,11 +284,17 @@ class RepoAnalyser:
             if fi.line_count < MIN_LINES_TO_ANALYSE:
                 continue
 
-            file_path = Path(self.scan.repo_path) / fi.path
-            try:
-                source = file_path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
+            # Use the source text already cached by the scanner when available,
+            # falling back to a fresh disk read only when it is absent (e.g. for
+            # FileInfo objects constructed manually in tests or by older callers).
+            if fi.source is not None:
+                source = fi.source
+            else:
+                file_path = Path(self.scan.repo_path) / fi.path
+                try:
+                    source = file_path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
 
             summary = _build_summary(source, fi)
             risks   = _build_risks(source, fi, fi.language)

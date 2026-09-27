@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Directories to skip entirely
@@ -133,6 +133,9 @@ class FileInfo:
     has_comments: bool           # at least one comment/docstring line found
     todo_count: int              # number of TODO/FIXME/… markers
     has_tests: bool              # a corresponding test file heuristic match
+    # Source text cached from the initial read so the analyser does not need a
+    # second disk access.  None for files that could not be decoded.
+    source: Optional[str] = None
 
 
 @dataclass
@@ -168,7 +171,7 @@ class RepoScanner:
         for file_path in self._iter_source_files():
             rel = file_path.relative_to(self.repo_path)
             lang = EXT_TO_LANG.get(file_path.suffix, "Other")
-            lines, has_comments, todo_count = self._analyse_file(file_path, lang)
+            lines, has_comments, todo_count, source = self._analyse_file(file_path, lang)
             has_tests = self._has_test_coverage(file_path, test_stems, tests_dir_exists)
 
             result.files.append(FileInfo(
@@ -178,6 +181,7 @@ class RepoScanner:
                 has_comments=has_comments,
                 todo_count=todo_count,
                 has_tests=has_tests,
+                source=source,
             ))
 
         return result
@@ -217,16 +221,17 @@ class RepoScanner:
                 stems.add(name[: -len("_test")])
         return stems
 
-    def _analyse_file(self, path: Path, lang: str) -> tuple[int, bool, int]:
+    def _analyse_file(self, path: Path, lang: str) -> Tuple[int, bool, int, Optional[str]]:
         """
-        Read *path* and return (line_count, has_comments, todo_count).
+        Read *path* and return (line_count, has_comments, todo_count, source).
 
-        Silently skips files that cannot be decoded as UTF-8 (binaries, etc.).
+        Returns source=None for files that cannot be decoded (binaries, etc.).
+        Silently swallows OSError so a single unreadable file never aborts a scan.
         """
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            return 0, False, 0
+            return 0, False, 0, None
 
         lines = text.splitlines()
         line_count = len(lines)
@@ -239,7 +244,7 @@ class RepoScanner:
 
         todo_count = sum(1 for line in lines if _TODO_RE.search(line))
 
-        return line_count, has_comments, todo_count
+        return line_count, has_comments, todo_count, text
 
     def _has_test_coverage(
         self,
