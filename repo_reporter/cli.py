@@ -1,5 +1,7 @@
 """CLI entrypoint for repo-reporter."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Optional
@@ -94,6 +96,107 @@ def scan(repo_path: str, output: Optional[str], fmt: str):
 
 
 # ---------------------------------------------------------------------------
+# arch — Codebase Architecture Extraction (Mermaid UML)
+# ---------------------------------------------------------------------------
+
+@cli.command("arch")
+@click.argument("repo_path", metavar="<path-to-repo>",
+                type=click.Path(file_okay=False, resolve_path=True))
+@click.option("--output", "-o", default=None, metavar="FILE",
+              help="Write the diagram to a file (default: stdout).")
+def arch(repo_path: str, output: str | None):
+    """Generate a Mermaid.js architecture diagram for the repository.
+
+    \b
+    Produces two diagrams:
+      1. Module/folder tree
+      2. Import dependency graph
+
+    \b
+    Examples:
+      repo-reporter arch /path/to/repo
+      repo-reporter arch /path/to/repo --output architecture.md
+    """
+    repo = _validate_repo(repo_path)
+    click.echo("Extracting architecture…", err=True)
+
+    from repo_reporter.architect import build_architecture_diagram
+    md = build_architecture_diagram(repo)
+
+    _write_or_print(md, output)
+
+
+# ---------------------------------------------------------------------------
+# debt — Technical Debt & Code Quality Audit
+# ---------------------------------------------------------------------------
+
+@cli.command("debt")
+@click.argument("repo_path", metavar="<path-to-repo>",
+                type=click.Path(file_okay=False, resolve_path=True))
+@click.option("--output", "-o", default=None, metavar="FILE",
+              help="Write the report to a file (default: stdout).")
+def debt(repo_path: str, output: str | None):
+    """Run a code quality audit and produce a Code Health Report.
+
+    \b
+    Detects: missing docstrings, magic numbers, deep nesting, TODO markers,
+    bare except clauses, mutable defaults, debug prints, wildcard imports,
+    commented-out code, and overly long files.
+
+    \b
+    Examples:
+      repo-reporter debt /path/to/repo
+      repo-reporter debt /path/to/repo --output health.md
+    """
+    repo = _validate_repo(repo_path)
+    click.echo("Auditing code quality…", err=True)
+
+    from repo_reporter.debt import audit_repo
+    md = audit_repo(repo)
+
+    _write_or_print(md, output)
+
+
+# ---------------------------------------------------------------------------
+# release-notes — Automated Release Notes from git log
+# ---------------------------------------------------------------------------
+
+@cli.command("release-notes")
+@click.argument("repo_path", metavar="<path-to-repo>",
+                type=click.Path(file_okay=False, resolve_path=True))
+@click.option("--tag", "-t", default="Next Release",
+              help="Version label for the release notes header (e.g. v1.2.0).")
+@click.option("--limit", "-n", default=50, show_default=True,
+              help="Max number of recent commits to include.")
+@click.option("--from-ref", default=None, metavar="REF",
+              help="Starting git ref (default: auto-detected previous tag).")
+@click.option("--output", "-o", default=None, metavar="FILE",
+              help="Write notes to a file (default: stdout).")
+def release_notes(repo_path: str, tag: str, limit: int,
+                  from_ref: str | None, output: str | None):
+    """Generate categorised release notes from git commit history.
+
+    \b
+    Commits are grouped by type: Features, Bug Fixes, Refactoring,
+    Documentation, CI/Build, and more. Follows Conventional Commits
+    but works with plain-prose messages too.
+
+    \b
+    Examples:
+      repo-reporter release-notes /path/to/repo
+      repo-reporter release-notes /path/to/repo --tag v2.0.0 --limit 30
+      repo-reporter release-notes /path/to/repo --from-ref v1.0.0 --tag v1.1.0
+    """
+    repo = _validate_repo(repo_path)
+    click.echo("Reading git log…", err=True)
+
+    from repo_reporter.release import build_release_notes
+    md = build_release_notes(repo, tag=tag, limit=limit, from_ref=from_ref or None)
+
+    _write_or_print(md, output)
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -145,3 +248,17 @@ def _die(message: str) -> None:
     """Print an error and exit with code 1."""
     click.echo(f"Error: {message}", err=True)
     sys.exit(1)
+
+
+def _write_or_print(content: str, output: str | None) -> None:
+    """Write content to a file or print to stdout."""
+    if output:
+        out_path = Path(output)
+        _ensure_dir(out_path.parent)
+        try:
+            out_path.write_text(content, encoding="utf-8")
+        except PermissionError as exc:
+            _die(f"Cannot write to {out_path}:\n  {exc}")
+        click.echo(f"  Written: {out_path}", err=True)
+    else:
+        click.echo(content)
